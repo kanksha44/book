@@ -1,29 +1,55 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import BookList from "./Components/BookList";
 import BookCreate from "./Components/BookCreate";
+import axios from "axios";
 
 function App() {
   const [books, setBooks] = useState([]);
 
-  const createBook = (title) => {
+  const fetchBooks = async () => {
+    const response = await axios.get("http://localhost:3001/books");
+    setBooks(response.data);
+  };
+
+  useEffect(() => {
+    fetchBooks();
+  }, []);
+
+  const createBook = async (title) => {
     // console.log("need to add book with title", title);
-    const updatedBooks = [
-      ...books,
-      { id: Math.round(Math.random() * 9999), title },
-    ];
-    setBooks(updatedBooks);
-  };
-  const deleteBookById = (id) => {
-    const updatedBooks = books.filter((book) => {
-      return book.id !== id;
+    const response = await axios.post("http://localhost:3001/books", {
+      title,
     });
+    const updatedBooks = [...books, response.data];
     setBooks(updatedBooks);
   };
-  const editBookById = (id, newTitle) => {
+
+  const deleteBookById = async (id) => {
+    try {
+      const response = await axios.delete(`http://localhost:3001/books/${id}`);
+      if (response.status === 200 || response.status === 204) {
+        const updatedBooks = books.filter((book) => {
+          return book.id !== id;
+        });
+        setBooks(updatedBooks);
+      } else {
+        console.error(
+          `Failed to delete book with id ${id}, status code: ${response.status}`
+        );
+      }
+    } catch (error) {
+      console.error("error deleting book", error);
+    }
+  };
+
+  const editBookById = async (id, newTitle) => {
+    const response = await axios.put(`http://localhost:3001/books/${id}`, {
+      title: newTitle,
+    });
     const updateBooks = books.map((book) => {
       if (book.id === id) {
-        return { ...book, title: newTitle };
+        return { ...book, ...response.data };
       }
       return book;
     });
